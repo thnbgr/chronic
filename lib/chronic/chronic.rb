@@ -50,6 +50,8 @@ module Chronic
     #
     # Returns a new Time object, or Chronic::Span if :guess option is false.
     def parse(text, opts={})
+      # ensure current locale is available
+      raise ArgumentError, "#{locale} is not an available locale" if locale_hash.nil?
       options = DEFAULT_OPTIONS.merge opts
 
       # ensure the specified options are valid
@@ -101,30 +103,13 @@ module Chronic
     # Returns a new String ready for Chronic to parse.
     def pre_normalize(text)
       text = text.to_s.downcase
-      text.gsub!(/\./, ':')
-      text.gsub!(/['"]/, '')
-      text.gsub!(/,/, ' ')
-      text.gsub!(/^second /, '2nd ')
-      text.gsub!(/\bsecond (of|day|month|hour|minute|second)\b/, '2nd \1')
+      locale_hash[:pre_normalize][:pre_numerize].each do |sub|
+        text.gsub!(*sub)
+      end
       text = Numerizer.numerize(text)
-      text.gsub!(/ \-(\d{4})\b/, ' tzminus\1')
-      text.gsub!(/([\/\-\,\@])/) { ' ' + $1 + ' ' }
-      text.gsub!(/(?:^|\s)0(\d+:\d+\s*pm?\b)/, ' \1')
-      text.gsub!(/\btoday\b/, 'this day')
-      text.gsub!(/\btomm?orr?ow\b/, 'next day')
-      text.gsub!(/\byesterday\b/, 'last day')
-      text.gsub!(/\bnoon\b/, '12:00pm')
-      text.gsub!(/\bmidnight\b/, '24:00')
-      text.gsub!(/\bnow\b/, 'this second')
-      text.gsub!(/\b(?:ago|before(?: now)?)\b/, 'past')
-      text.gsub!(/\bthis (?:last|past)\b/, 'last')
-      text.gsub!(/\b(?:in|during) the (morning)\b/, '\1')
-      text.gsub!(/\b(?:in the|during the|at) (afternoon|evening|night)\b/, '\1')
-      text.gsub!(/\btonight\b/, 'this night')
-      text.gsub!(/\b\d+:?\d*[ap]\b/,'\0m')
-      text.gsub!(/(\d)([ap]m|oclock)\b/, '\1 \2')
-      text.gsub!(/\b(hence|after|from)\b/, 'future')
-      text.gsub!(/^\s?an? /i, '1 ')
+      locale_hash[:pre_normalize][:pos_numerize].each do |sub|
+        text.gsub!(*sub)
+      end
       text
     end
 
@@ -282,6 +267,16 @@ module Chronic
       end
 
       Chronic.time_class.local(year, month, day, hour, minute, second)
+    end
+
+    def add_locale(name, locale)
+      raise ArgumentError, "Locale shoud be a hash" unless locale.is_a?(Hash)
+      locale_hashes[name] = locale
+    end
+
+    # Returns the translations for the current locale
+    def locale_hash
+      locale_hashes[locale]
     end
 
     private
