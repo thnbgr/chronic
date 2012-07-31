@@ -1,5 +1,6 @@
 # HEAD
 
+* Added localization support
 * Start using minitest for testing
 * Ensure periods are interpreted as colons (#81).
 * Support month/day and day/month parsing (#59).
